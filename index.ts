@@ -1,0 +1,69 @@
+import express from "express";
+import "./monitor.js";
+
+const app = express();
+const PORT = 3000;
+
+function simulateCPULoad(durationSeconds: number) {
+    console.log(`[STRESS] Starting CPU stress test for ${durationSeconds} seconds...`);
+    const startTime = Date.now();
+    const durationMs = durationSeconds * 1000;
+
+    // This is a blocking loop - it will freeze the event loop
+    while (Date.now() - startTime < durationMs) {
+        // Do some math to keep the CPU busy
+        Math.sqrt(Math.random() * Math.random());
+    }
+
+    console.log("[STRESS] CPU stress test completed.");
+}
+
+// Health Endpoint
+app.get("/health", (req, res) => {
+    res.json({
+        status: "OK",
+        message: "Server is healthy",
+        uptime: process.uptime(),
+    });
+});
+
+app.get("/crash", (req, res) => {
+    console.log("[SERVER] Forced crash requested.");
+    res.send("This call will crash the server! PM2 should restart it.");
+    // Force a crash to test monitoring
+    setImmediate(() => {
+        throw new Error("Controlled Crash for Monitoring Test");
+    });
+});
+
+
+// Stress Endpoint
+app.get("/stress", (req, res) => {
+    const duration = parseInt(req.query.duration as string) || 5;
+
+    // We run this in the background (but it's blocking, so it WILL freeze the server for 'duration' seconds)
+    // The user specifically asked for "CPU 100 percent use"
+    res.json({ message: `Starting CPU stress for ${duration} seconds. Server will be unresponsive during this time.` });
+
+    // Defer execution slightly to let the response be sent (if possible, though blocking code might prevent it if not careful)
+    setTimeout(() => {
+        simulateCPULoad(duration);
+    }, 100);
+});
+
+app.listen(PORT, () => {
+    console.log(`[SERVER] Express server running at http://localhost:${PORT}`);
+    console.log(`[SERVER] Health check: http://localhost:${PORT}/health`);
+    console.log(`[SERVER] Stress test: http://localhost:${PORT}/stress?duration=10`);
+    console.log(`[SERVER] Crash test: http://localhost:${PORT}/crash`);
+});
+
+/**
+ * BEST PRACTICE:
+ * For tasks that use 100% CPU, Node.js becomes unresponsive because its single-threaded event loop is blocked.
+ * To handle heavy tasks without blocking the server, use "Worker Threads".
+ * Example:
+ * const { Worker } = require('worker_threads');
+ * const worker = new Worker('./cpu-task.js');
+ */
+
