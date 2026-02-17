@@ -1,8 +1,9 @@
 import express from "express";
-import "./monitor.js";
+import {trackRequest} from "./request-tracker.js";
+import "./crash-guardian.js"
 
 const app = express();
-const PORT = 3000;
+const PORT = 4000;
 
 function simulateCPULoad(durationSeconds: number) {
     console.log(`[STRESS] Starting CPU stress test for ${durationSeconds} seconds...`);
@@ -63,6 +64,9 @@ function cpuHang() {
         Math.sqrt(Math.random());
     }
 }
+
+
+app.use(trackRequest);
 
 app.get("/crash-memory", (req, res) => {
     res.send("Memory leak started. Server will crash soon.");
