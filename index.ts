@@ -27,13 +27,19 @@ app.get("/health", (req, res) => {
     });
 });
 
+function cpuHang() {
+    console.log("CPU Hang started");
+
+    while (true) {
+        Math.sqrt(Math.random());
+    }
+}
+
+
 app.get("/crash", (req, res) => {
     console.log("[SERVER] Forced crash requested.");
     res.send("This call will crash the server! PM2 should restart it.");
-    // Force a crash to test monitoring
-    setImmediate(() => {
-        throw new Error("Controlled Crash for Monitoring Test");
-    });
+    cpuHang();
 });
 
 
