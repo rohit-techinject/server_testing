@@ -18,6 +18,22 @@ function simulateCPULoad(durationSeconds: number) {
     console.log("[STRESS] CPU stress test completed.");
 }
 
+
+function crashByMemoryLimit() {
+    console.log("[TEST] Memory leak started...");
+
+    const memoryHog: Buffer[] = [];
+
+    setInterval(() => {
+        // Har 100ms me 20MB RAM allocate karega
+        const buf = Buffer.alloc(20 * 1024 * 1024); // 20MB
+        memoryHog.push(buf);
+
+        const usedMB = process.memoryUsage().rss / 1024 / 1024;
+        console.log(`[MEMORY] RSS = ${usedMB.toFixed(2)} MB`);
+    }, 100);
+}
+
 // Health Endpoint
 app.get("/health", (req, res) => {
     res.json({
@@ -34,6 +50,12 @@ function cpuHang() {
         Math.sqrt(Math.random());
     }
 }
+
+app.get("/crash-memory", (req, res) => {
+    res.send("Memory leak started. Server will crash soon.");
+    crashByMemoryLimit();
+});
+
 
 
 app.get("/crash", (req, res) => {
