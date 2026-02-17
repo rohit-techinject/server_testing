@@ -19,20 +19,33 @@ function simulateCPULoad(durationSeconds: number) {
 }
 
 
+// ⚠️ DANGEROUS — TEST ONLY
 function crashByMemoryLimit() {
-    console.log("[TEST] Memory leak started...");
+    console.log("[TEST] REAL memory leak started...");
 
     const memoryHog: Buffer[] = [];
 
     setInterval(() => {
-        // Har 100ms me 20MB RAM allocate karega
-        const buf = Buffer.alloc(20 * 1024 * 1024); // 20MB
+        // 30MB per second
+        const size = 30 * 1024 * 1024;
+        const buf = Buffer.allocUnsafe(size);
+
+        // 🔥 TOUCH EVERY PAGE (force RAM commit)
+        for (let i = 0; i < size; i += 4096) {
+            buf[i] = 1;
+        }
+
         memoryHog.push(buf);
 
-        const usedMB = process.memoryUsage().rss / 1024 / 1024;
-        console.log(`[MEMORY] RSS = ${usedMB.toFixed(2)} MB`);
-    }, 100);
+        const mem = process.memoryUsage();
+        console.log(
+            `[MEMORY] RSS=${(mem.rss / 1024 / 1024).toFixed(1)}MB ` +
+            `heap=${(mem.heapUsed / 1024 / 1024).toFixed(1)}MB ` +
+            `external=${(mem.external / 1024 / 1024).toFixed(1)}MB`
+        );
+    }, 1000);
 }
+
 
 // Health Endpoint
 app.get("/health", (req, res) => {
